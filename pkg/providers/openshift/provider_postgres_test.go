@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	types2 "github.com/integr8ly/cloud-resource-operator/pkg/apis/integreatly/v1alpha1/types"
+	types2 "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
 
 	"github.com/integr8ly/cloud-resource-operator/pkg/resources"
 
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/integr8ly/cloud-resource-operator/pkg/apis/integreatly/v1alpha1"
+	"github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
 	"github.com/integr8ly/cloud-resource-operator/pkg/providers"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"

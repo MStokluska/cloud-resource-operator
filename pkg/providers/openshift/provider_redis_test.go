@@ -3,7 +3,7 @@ package openshift
 import (
 	"context"
 	"fmt"
-	"github.com/integr8ly/cloud-resource-operator/pkg/apis/integreatly/v1alpha1/types"
+	"github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
 	"time"
 
 	"reflect"
@@ -14,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/integr8ly/cloud-resource-operator/pkg/apis"
-	"github.com/integr8ly/cloud-resource-operator/pkg/apis/integreatly/v1alpha1"
+	"github.com/integr8ly/cloud-resource-operator/apis"
+	"github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
