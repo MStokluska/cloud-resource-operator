@@ -33,6 +33,7 @@ import (
 	postgressnapshot "github.com/integr8ly/cloud-resource-operator/controllers/postgressnapshot"
 	redis "github.com/integr8ly/cloud-resource-operator/controllers/redis"
 	redissnapshot "github.com/integr8ly/cloud-resource-operator/controllers/redissnapshot"
+	cloudmetrics "github.com/integr8ly/cloud-resource-operator/controllers/cloudmetrics"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -109,6 +110,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RedisSnapshot")
+		os.Exit(1)
+	}
+	if err = (&cloudmetrics.CloudMetricsReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("CloudMetrics"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudMetrics")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
