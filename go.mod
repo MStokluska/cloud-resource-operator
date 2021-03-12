@@ -23,7 +23,6 @@ require (
 	github.com/operator-framework/operator-sdk v0.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
-	github.com/rakyll/gotest v0.0.5 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	golang.org/x/sys v0.0.0-20210309074719-68d13333faf2 // indirect
 	k8s.io/api v0.18.4

@@ -27,13 +27,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	v1 "github.com/integr8ly/cloud-resource-operator/apis/config/v1"
 	integreatlyv1alpha1 "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
+	apis "github.com/integr8ly/cloud-resource-operator/apis"
 	blobstorageController "github.com/integr8ly/cloud-resource-operator/controllers/blobstorage"
 	cloudmetricsController "github.com/integr8ly/cloud-resource-operator/controllers/cloudmetrics"
 	postgresController "github.com/integr8ly/cloud-resource-operator/controllers/postgres"
 	postgressnapshotController "github.com/integr8ly/cloud-resource-operator/controllers/postgressnapshot"
 	redisController "github.com/integr8ly/cloud-resource-operator/controllers/redis"
 	redissnapshotController "github.com/integr8ly/cloud-resource-operator/controllers/redissnapshot"
+	"github.com/integr8ly/cloud-resource-operator/internal/k8sutil"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -46,6 +49,9 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(integreatlyv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
+
+	utilruntime.Must(apis.AddToSchemes.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -60,7 +66,14 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
+	namespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		setupLog.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Namespace:          namespace,
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,

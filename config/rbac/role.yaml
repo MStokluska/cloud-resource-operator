@@ -23,26 +23,6 @@ rules:
   - list
   - watch
 - apiGroups:
-  - integreatly.org
-  resources:
-  - blobstorages
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - integreatly.org
-  resources:
-  - blobstorages/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - monitoring.coreos.com
   resources:
   - prometheusrules
@@ -93,6 +73,20 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - apps
+  resourceNames:
+  - cloud-resource-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+- apiGroups:
   - cloud-resource-operator
   resources:
   - deployments/finalizers
@@ -135,6 +129,26 @@ rules:
   - smtpcredentialset
   verbs:
   - '*'
+- apiGroups:
+  - integreatly.org
+  resources:
+  - blobstorages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - integreatly.org
+  resources:
+  - blobstorages/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - monitoring.coreos.com
   resources:
