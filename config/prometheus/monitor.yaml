@@ -4,13 +4,12 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    control-plane: controller-manager
-  name: controller-manager-metrics-monitor
-  namespace: system
+    name: cloud-resource-operator
+  name: cloud-resource-operator-metrics
 spec:
   endpoints:
-    - path: /metrics
-      port: https
+  - path: /metrics
+    port: http-metrics
   selector:
     matchLabels:
-      control-plane: controller-manager
+      name: cloud-resource-operator
