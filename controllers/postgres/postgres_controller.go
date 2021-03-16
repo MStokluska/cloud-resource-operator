@@ -29,6 +29,7 @@ import (
 
 	"github.com/integr8ly/cloud-resource-operator/pkg/providers"
 	"github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
 	errorUtil "github.com/pkg/errors"
@@ -36,6 +37,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -59,7 +61,15 @@ type PostgresReconciler struct {
 
 // New returns a new reconcile.Reconciler
 func New(mgr manager.Manager) (*PostgresReconciler, error) {
-	client := mgr.GetClient()
+	restConfig := controllerruntime.GetConfigOrDie()
+	restConfig.Timeout = time.Second * 10
+
+	client, err := k8sclient.New(restConfig, k8sclient.Options{
+		Scheme: mgr.GetScheme(),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	clientSet, err := resources.GetK8Client()
 	if err != nil {

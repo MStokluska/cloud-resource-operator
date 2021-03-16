@@ -11,6 +11,8 @@ import (
 	"github.com/integr8ly/cloud-resource-operator/pkg/resources"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"time"
 
 	integreatlyv1alpha1 "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -196,11 +198,18 @@ type CloudMetricsReconciler struct {
 }
 
 // New returns a new reconcile.Reconciler
-func New(mgr manager.Manager) *CloudMetricsReconciler {
-	c := mgr.GetClient()
+func New(mgr manager.Manager) (*CloudMetricsReconciler, error) {
+	restConfig := controllerruntime.GetConfigOrDie()
+	restConfig.Timeout = time.Second * 10
+	client, err := k8sclient.New(restConfig, k8sclient.Options{
+		Scheme: mgr.GetScheme(),
+	})
+	if err != nil {
+		return nil, err
+	}
 	logger := logrus.WithFields(logrus.Fields{"controller": "controller_cloudmetrics"})
-	postgresProviderList := []providers.PostgresMetricsProvider{aws.NewAWSPostgresMetricsProvider(c, logger)}
-	redisProviderList := []providers.RedisMetricsProvider{aws.NewAWSRedisMetricsProvider(c, logger)}
+	postgresProviderList := []providers.PostgresMetricsProvider{aws.NewAWSPostgresMetricsProvider(client, logger)}
+	redisProviderList := []providers.RedisMetricsProvider{aws.NewAWSRedisMetricsProvider(client, logger)}
 
 	// we only wish to register metrics once when the new reconciler is created
 	// as the metrics we want to expose are known in advance we can register them all
@@ -212,7 +221,7 @@ func New(mgr manager.Manager) *CloudMetricsReconciler {
 		logger:               logger,
 		postgresProviderList: postgresProviderList,
 		redisProviderList:    redisProviderList,
-	}
+	}, nil
 }
 
 func (r *CloudMetricsReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -236,30 +245,6 @@ func (r *CloudMetricsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Channel{Source: events}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
-
-// ClusterRole permissions
-
-// +kubebuilder:rbac:groups="config.openshift.io",resources=infrastructures;networks,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=persistentvolumes;configmaps,verbs="*"
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*"
-
-// Role permissions
-
-// +kubebuilder:rbac:groups="",resources=pods;pods/exec;services;services/finalizers;endpoints;persistentVolumeclaims;events;configmaps;secrets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources=deployments;daemonsets;replicasets;statefulsets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=servicemonitors,verbs=get;create,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloud-resource-operator",resources=deployments/finalizers,verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="replicasets",verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resourceNames="cloud-resource-operator",resources="deployments/finalizers",verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly.org",resources="*";smtpcredentialset;redis;postgres;redissnapshots;postgressnapshots,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="config.openshift.io",resources="*";infrastructures;schedulers;featuregates;networks;ingresses;clusteroperators;authentications;builds,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloudcredential.openshift.io",resources=credentialsrequests,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages,verbs=get;list;watch;create;update;patch;delete,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages/status,verbs=get;update;patch,namespace=cloud-resource-operator
 
 func (r *CloudMetricsReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	r.logger.Info("reconciling CloudMetrics")

@@ -27,9 +27,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	apis "github.com/integr8ly/cloud-resource-operator/apis"
 	v1 "github.com/integr8ly/cloud-resource-operator/apis/config/v1"
 	integreatlyv1alpha1 "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
-	apis "github.com/integr8ly/cloud-resource-operator/apis"
 	blobstorageController "github.com/integr8ly/cloud-resource-operator/controllers/blobstorage"
 	cloudmetricsController "github.com/integr8ly/cloud-resource-operator/controllers/cloudmetrics"
 	postgresController "github.com/integr8ly/cloud-resource-operator/controllers/postgres"
@@ -85,8 +85,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = blobstorageController.New(mgr).SetupWithManager(mgr); err != nil {
+	blobstorageCtrl, err := blobstorageController.New(mgr)
+	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Blobstorage")
+		os.Exit(1)
+	}
+	if err = blobstorageCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "Blobstorage")
+		os.Exit(1)
+	}
+
+	cloudmetricsCtrl, err := cloudmetricsController.New(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Cloudmetrics")
+		os.Exit(1)
+	}
+	if err = cloudmetricsCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "Cloudmetrics")
 		os.Exit(1)
 	}
 
@@ -100,23 +115,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = postgressnapshotController.New(mgr).SetupWithManager(mgr); err != nil {
+	postgressnapshotCtrl, err := postgressnapshotController.New(mgr)
+	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Postgressnapshot")
 		os.Exit(1)
 	}
+	if err = postgressnapshotCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "Postgressnapshot")
+		os.Exit(1)
+	}
 
-	if err = redisController.New(mgr).SetupWithManager(mgr); err != nil {
+	redisCtrl, err := redisController.New(mgr)
+	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Redis")
 		os.Exit(1)
 	}
-
-	if err = redissnapshotController.New(mgr).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Redissnapshot")
+	if err = redisCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "Redis")
 		os.Exit(1)
 	}
 
-	if err = cloudmetricsController.New(mgr).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Cloudmetrics")
+	redissnapshotCtrl, err := redissnapshotController.New(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Redissnapshot")
+		os.Exit(1)
+	}
+	if err = redissnapshotCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "Redissnapshot")
 		os.Exit(1)
 	}
 

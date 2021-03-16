@@ -19,21 +19,21 @@ package blobstorage
 import (
 	"context"
 	"fmt"
-
 	croType "github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1/types"
 	"github.com/integr8ly/cloud-resource-operator/pkg/providers/openshift"
 	"github.com/integr8ly/cloud-resource-operator/pkg/resources"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/integr8ly/cloud-resource-operator/pkg/providers/aws"
 
-	"github.com/integr8ly/cloud-resource-operator/pkg/providers"
-
 	"github.com/integr8ly/cloud-resource-operator/apis/integreatly/v1alpha1"
+	"github.com/integr8ly/cloud-resource-operator/pkg/providers"
 	errorUtil "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -56,8 +56,16 @@ type BlobStorageReconciler struct {
 }
 
 // New returns a new reconcile.Reconciler
-func New(mgr manager.Manager) *BlobStorageReconciler {
-	client := mgr.GetClient()
+func New(mgr manager.Manager) (*BlobStorageReconciler, error) {
+	restConfig := controllerruntime.GetConfigOrDie()
+	restConfig.Timeout = time.Second * 10
+	client, err := k8sclient.New(restConfig, k8sclient.Options{
+		Scheme: mgr.GetScheme(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	logger := logrus.WithFields(logrus.Fields{"controller": "controller_blobstorage"})
 	providerList := []providers.BlobStorageProvider{aws.NewAWSBlobStorageProvider(client, logger), openshift.NewBlobStorageProvider(client, logger)}
 	rp := resources.NewResourceProvider(client, mgr.GetScheme(), logger)
@@ -67,7 +75,7 @@ func New(mgr manager.Manager) *BlobStorageReconciler {
 		logger:           logger,
 		resourceProvider: rp,
 		providerList:     providerList,
-	}
+	}, nil
 }
 
 func (r *BlobStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -76,30 +84,6 @@ func (r *BlobStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &v1alpha1.BlobStorage{}}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
-
-// ClusterRole permissions
-
-// +kubebuilder:rbac:groups="config.openshift.io",resources=infrastructures;networks,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=persistentvolumes;configmaps,verbs="*"
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*"
-
-// Role permissions
-
-// +kubebuilder:rbac:groups="",resources=pods;pods/exec;services;services/finalizers;endpoints;persistentVolumeclaims;events;configmaps;secrets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources=deployments;daemonsets;replicasets;statefulsets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=servicemonitors,verbs=get;create,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloud-resource-operator",resources=deployments/finalizers,verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="replicasets",verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resourceNames="cloud-resource-operator",resources="deployments/finalizers",verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly.org",resources="*";smtpcredentialset;redis;postgres;redissnapshots;postgressnapshots,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="config.openshift.io",resources="*";infrastructures;schedulers;featuregates;networks;ingresses;clusteroperators;authentications;builds,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloudcredential.openshift.io",resources=credentialsrequests,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages,verbs=get;list;watch;create;update;patch;delete,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages/status,verbs=get;update;patch,namespace=cloud-resource-operator
 
 func (r *BlobStorageReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	r.logger.Info("reconciling BlobStorage")

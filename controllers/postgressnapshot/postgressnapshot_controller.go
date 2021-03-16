@@ -19,6 +19,7 @@ package postgressnapshot
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/integr8ly/cloud-resource-operator/pkg/providers"
 
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -57,17 +59,26 @@ type PostgresSnapshotReconciler struct {
 }
 
 // New returns a new reconcile.Reconciler
-func New(mgr manager.Manager) *PostgresSnapshotReconciler {
+func New(mgr manager.Manager) (*PostgresSnapshotReconciler, error) {
+	restConfig := controllerruntime.GetConfigOrDie()
+	restConfig.Timeout = time.Second * 10
+
+	client, err := k8sclient.New(restConfig, k8sclient.Options{
+		Scheme: mgr.GetScheme(),
+	})
+	if err != nil {
+		return nil, err
+	}
 	logger := logrus.WithFields(logrus.Fields{"controller": "controller_postgres_snapshot"})
-	provider := croAws.NewAWSPostgresSnapshotProvider(mgr.GetClient(), logger)
+	provider := croAws.NewAWSPostgresSnapshotProvider(client, logger)
 	return &PostgresSnapshotReconciler{
-		Client:            mgr.GetClient(),
+		Client:            client,
 		scheme:            mgr.GetScheme(),
 		logger:            logger,
 		provider:          provider,
 		ConfigManager:     croAws.NewDefaultConfigMapConfigManager(mgr.GetClient()),
 		CredentialManager: croAws.NewCredentialMinterCredentialManager(mgr.GetClient()),
-	}
+	}, nil
 }
 
 func (r *PostgresSnapshotReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -80,30 +91,6 @@ func (r *PostgresSnapshotReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}).
 		Complete(r)
 }
-
-// ClusterRole permissions
-
-// +kubebuilder:rbac:groups="config.openshift.io",resources=infrastructures;networks,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=persistentvolumes;configmaps,verbs="*"
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*"
-
-// Role permissions
-
-// +kubebuilder:rbac:groups="",resources=pods;pods/exec;services;services/finalizers;endpoints;persistentVolumeclaims;events;configmaps;secrets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources=deployments;daemonsets;replicasets;statefulsets,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=servicemonitors,verbs=get;create,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloud-resource-operator",resources=deployments/finalizers,verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resources="replicasets",verbs=get,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="apps",resourceNames="cloud-resource-operator",resources="deployments/finalizers",verbs=update,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly",resources="*",verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="integreatly.org",resources="*";smtpcredentialset;redis;postgres;redissnapshots;postgressnapshots,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="monitoring.coreos.com",resources=prometheusrules,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="config.openshift.io",resources="*";infrastructures;schedulers;featuregates;networks;ingresses;clusteroperators;authentications;builds,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups="cloudcredential.openshift.io",resources=credentialsrequests,verbs="*",namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages,verbs=get;list;watch;create;update;patch;delete,namespace=cloud-resource-operator
-// +kubebuilder:rbac:groups=integreatly.org,resources=blobstorages/status,verbs=get;update;patch,namespace=cloud-resource-operator
 
 func (r *PostgresSnapshotReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	r.logger.Info("reconciling postgres snapshot")
