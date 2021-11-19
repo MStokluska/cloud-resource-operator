@@ -156,11 +156,11 @@ test/unit/ci: test/unit
 .PHONY: image/build
 image/build: build
 	echo "build image ${OPERATOR_IMG}"
-	podman build . -t ${OPERATOR_IMG}
+	docker build . -t ${OPERATOR_IMG}
 
 .PHONY: image/push
 image/push: image/build
-	podman push ${OPERATOR_IMG}
+	docker push ${OPERATOR_IMG}
 
 .PHONY: test/e2e/prow
 test/e2e/prow: export component := cloud-resource-operator
