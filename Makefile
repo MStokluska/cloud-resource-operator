@@ -162,6 +162,17 @@ image/build: build
 image/push: image/build
 	podman push ${OPERATOR_IMG}
 
+.PHONY: image/build/pipelines
+image/build/pipelines: build
+	echo "build image ${OPERATOR_IMG}"
+	sudo podman build --ulimit nofile=65535:65535 . -t ${OPERATOR_IMG}
+	sudo podman save ${OPERATOR_IMG} | sudo -u jenkins podman load
+
+.PHONY: image/push/pipelines
+image/push/pipelines: image/build/pipelines
+	echo "pushing image ${OPERATOR_IMG}"
+	podman push ${OPERATOR_IMG}
+
 .PHONY: test/e2e/prow
 test/e2e/prow: export component := cloud-resource-operator
 test/e2e/prow: export OPERATOR_IMAGE := ${IMAGE_FORMAT}
@@ -249,3 +260,7 @@ create/olm/bundle:
 
 .PHONY: release/prepare
 release/prepare: gen/csv image/push create/olm/bundle
+
+.PHONY: verify/release/exist
+verify/release/exist:
+	IMAGE_TO_SCAN=${OPERATOR_IMG} ./scripts/imageExists.sh
