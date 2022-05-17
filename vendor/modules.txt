@@ -381,7 +381,7 @@ github.com/kr/text
 github.com/lann/builder
 # github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
 github.com/lann/ps
-# github.com/lib/pq v1.7.0
+# github.com/lib/pq v1.10.6
 ## explicit
 github.com/lib/pq
 github.com/lib/pq/oid
