@@ -1,8 +1,8 @@
 FROM scratch
 
 ARG version
-ARG manifest_path=bundles/${version}/manifests
-ARG metadata_path=bundles/${version}/metadata
+ARG manifest_path=bundles/1.1.4/manifests
+ARG metadata_path=bundles/1.1.4/metadata
 
 # Core bundle labels.
 LABEL operators.operatorframework.io.bundle.mediatype.v1=registry+v1
