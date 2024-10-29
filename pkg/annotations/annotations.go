@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// dummy change
 // Add makes sure that the provided key/value are set as an annotation
 func Add(instance metav1.Object, key, value string) {
 	annotations := instance.GetAnnotations()
